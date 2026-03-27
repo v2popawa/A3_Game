@@ -1,0 +1,27 @@
+function drawStart() {
+  background(50);
+
+  fill(255);
+  textAlign(CENTER);
+  textSize(40);
+  text("Detective Lineup", width / 2, 150);
+
+  fill(100);
+  rect(300, 250, 200, 50);
+  rect(300, 320, 200, 50);
+
+  fill(255);
+  textSize(20);
+  text("Start Game", 400, 285);
+  text("Instructions", 400, 355);
+}
+
+function startMousePressed() {
+  if (mouseX > 300 && mouseX < 500 && mouseY > 250 && mouseY < 300) {
+    currentScreen = "level1";
+  }
+
+  if (mouseX > 300 && mouseX < 500 && mouseY > 320 && mouseY < 370) {
+    currentScreen = "instructions";
+  }
+}
