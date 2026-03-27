@@ -100,15 +100,25 @@ function drawCenteredPanel(title, body, buttonLabel, button) {
 function drawCaseHeader(title, subtitle = "") {
   push();
   fill(255);
-  textAlign(CENTER, CENTER);
+  textAlign(CENTER, TOP);
+
+  const titleY = height * 0.06;
+  const subtitleY = height * 0.12;
 
   textSize(min(width, height) * 0.04);
-  text(title, width / 2, height * 0.1);
+  text(title, width / 2, titleY);
 
   if (subtitle) {
     textSize(min(width, height) * 0.022);
-    text(subtitle, width / 2, height * 0.1);
+    text(
+      subtitle,
+      width / 2 - width * 0.3,
+      subtitleY,
+      width * 0.6,
+      height * 0.08,
+    );
   }
+
   pop();
 }
 
@@ -186,4 +196,23 @@ function resetAllLevels() {
   resetLevel1();
   resetLevel2();
   resetLevel3();
+}
+
+// Create evenly spaced centered buttons in one row
+function getButtonRow(count, centerY, buttonW, buttonH, gap = 20) {
+  const totalWidth = count * buttonW + (count - 1) * gap;
+  const startX = width / 2 - totalWidth / 2 + buttonW / 2;
+
+  let buttons = [];
+
+  for (let i = 0; i < count; i++) {
+    buttons.push({
+      x: startX + i * (buttonW + gap),
+      y: centerY,
+      w: buttonW,
+      h: buttonH,
+    });
+  }
+
+  return buttons;
 }
