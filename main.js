@@ -4,9 +4,13 @@
 
 let currentScreen = "start";
 let level1Sprite = null;
+let level2Sprite = null;
+let level3Sprite = null;
 
 function preload() {
   level1Sprite = loadImage("assets/images/level1emotions.png");
+  level2Sprite = loadImage("assets/images/level2emotions.png");
+  level3Sprite = loadImage("assets/images/level3emotions.png");
 }
 
 function setup() {

@@ -1,21 +1,24 @@
 // --------------------------------------------------
 // Level 3 - Final case
-// Keeps features from earlier levels:
+// Keeps earlier features:
 // - inspect
 // - magnify
 // - convict
 // - ask question
 // - evidence board
 //
-// Adds new Level 3 features:
+// Adds:
 // - notebook
 // - forensics
+//
+// Uses one sprite sheet with 5 suspect portraits
 // --------------------------------------------------
 
 let suspects3 = [
   {
     name: "Noah",
     isCulprit: false,
+    spriteIndex: 0,
     appearance: "Uniform is tidy. Sleeves are rolled evenly.",
     magnifiedClue: "Bus lint on the cuff, but no gray toner dust.",
     interview: "My shift ended at 9:00, and I caught the bus straight home.",
@@ -25,7 +28,8 @@ let suspects3 = [
   {
     name: "Riley",
     isCulprit: false,
-    appearance: "Jacket hem is muddy from the loading bay.",
+    spriteIndex: 1,
+    appearance: "Jacket hem is dusty and wrinkled from the loading bay.",
     magnifiedClue:
       "Mud and gravel from outside, nothing from the records room carpet.",
     interview: "I heard the scream from the loading bay and ran over.",
@@ -35,7 +39,8 @@ let suspects3 = [
   {
     name: "Casey",
     isCulprit: true,
-    appearance: "Dark blazer. Right cuff looks recently brushed clean.",
+    spriteIndex: 2,
+    appearance: "Dark suit. Right cuff looks recently brushed clean.",
     magnifiedClue: "A faint gray powder is trapped inside the right cuff seam.",
     interview: "I never went near the records room tonight.",
     boardNote: "Casey changed the timeline twice during questioning.",
@@ -44,12 +49,24 @@ let suspects3 = [
   {
     name: "Jamie",
     isCulprit: false,
+    spriteIndex: 3,
     appearance:
       "Front desk uniform still has a clipped visitor badge attached.",
     magnifiedClue: "Badge clip scratch and pen ink, but no toner residue.",
     interview: "I stayed at the front desk until police arrived.",
     boardNote: "Badge log shows Jamie remained at reception.",
     notebook: "Reception camera confirms Jamie stayed at the desk.",
+  },
+  {
+    name: "Emma",
+    isCulprit: false,
+    spriteIndex: 4,
+    appearance: "Looks shaken and disheveled after the incident.",
+    magnifiedClue:
+      "Dust and minor scrapes, but nothing matching toner from the records room.",
+    interview: "I heard arguing, then I ducked when everything went quiet.",
+    boardNote: "Emma's timeline matches the witness on the second floor.",
+    notebook: "No sign Emma ever entered the records room.",
   },
 ];
 
@@ -69,31 +86,78 @@ let showBoard3 = false;
 
 let forensicsLeft3 = 1;
 let forensicMessage3 = "";
-let questioned3 = [false, false, false, false];
+let questioned3 = [false, false, false, false, false];
 
 function getLevel3Buttons() {
+  const lineupRow = getButtonRow(3, height * 0.86, 150, 50, 22);
+  const inspectRow = getButtonRow(3, height * 0.86, 150, 50, 22);
+
   return {
     begin: { x: width / 2, y: height * 0.74, w: 220, h: 52 },
-    board: { x: width * 0.3, y: height * 0.84, w: 160, h: 50 },
-    forensics: { x: width * 0.5, y: height * 0.84, w: 170, h: 50 },
-    convict: { x: width * 0.7, y: height * 0.84, w: 160, h: 50 },
+
+    board: lineupRow[0],
+    forensics: lineupRow[1],
+    convict: lineupRow[2],
+
     back: { x: width * 0.12, y: height * 0.12, w: 110, h: 44 },
-    magnify: { x: width * 0.38, y: height * 0.84, w: 160, h: 50 },
-    ask: { x: width * 0.56, y: height * 0.84, w: 160, h: 50 },
-    notebook: { x: width * 0.74, y: height * 0.84, w: 160, h: 50 },
+    magnify: inspectRow[0],
+    ask: inspectRow[1],
+    notebook: inspectRow[2],
   };
+}
+
+function isMouseOverLevel3Suspect(x, y, w, h) {
+  return (
+    mouseX > x - w / 2 &&
+    mouseX < x + w / 2 &&
+    mouseY > y - h / 2 &&
+    mouseY < y + h / 2
+  );
+}
+
+function drawLevel3Portrait(x, y, suspect, drawW, drawH) {
+  const hovered = isMouseOverLevel3Suspect(x, y, drawW, drawH);
+
+  push();
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  noFill();
+  strokeWeight(4);
+
+  if (convictMode3) stroke(255, 110, 110);
+  else if (hovered) stroke(120, 210, 255);
+  else stroke(255);
+
+  rect(x, y, drawW + 10, drawH + 10, 14);
+
+  if (level3Sprite && level3Sprite.width > 0) {
+    const srcW = level3Sprite.width / 5;
+    const srcH = level3Sprite.height;
+    const sx = suspect.spriteIndex * srcW;
+    const sy = 0;
+
+    image(level3Sprite, x, y, drawW, drawH, sx, sy, srcW, srcH);
+  } else {
+    fill(160);
+    noStroke();
+    rect(x, y, drawW, drawH, 12);
+  }
+
+  fill(255);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(max(12, drawW * 0.12));
+  text(suspect.name, x, y + drawH * 0.62);
+  pop();
 }
 
 function drawLevel3() {
   background(38, 48, 60);
 
-  if (level3Stage === "intro") {
-    drawLevel3Intro();
-  } else if (level3Mode === "lineup") {
-    drawLevel3Lineup();
-  } else {
-    drawLevel3Inspect();
-  }
+  if (level3Stage === "intro") drawLevel3Intro();
+  else if (level3Mode === "lineup") drawLevel3Lineup();
+  else drawLevel3Inspect();
 
   if (showNotebook3) drawNotebook3();
   if (showForensics3) drawForensicsPanel3();
@@ -135,17 +199,7 @@ function drawLevel3Lineup() {
   pop();
 
   for (let i = 0; i < suspects3.length; i++) {
-    let fillColor = [170, 170, 170];
-    if (questioned3[i]) fillColor = [90, 150, 210];
-    if (convictMode3) fillColor = [170, 80, 80];
-
-    drawSuspectToken(
-      positions[i].x,
-      positions[i].y,
-      78,
-      suspects3[i].name,
-      fillColor,
-    );
+    drawLevel3Portrait(positions[i].x, positions[i].y, suspects3[i], 100, 160);
   }
 
   drawButton(buttons.board, "Board");
@@ -163,18 +217,36 @@ function drawLevel3Inspect() {
   );
 
   push();
-  fill(210);
-  noStroke();
-  ellipse(width / 2, height * 0.32, 180);
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  noFill();
+  stroke(255);
+  strokeWeight(4);
+  rect(width / 2, height * 0.32, 250, 280, 16);
+
+  if (level3Sprite && level3Sprite.width > 0) {
+    const srcW = level3Sprite.width / 5;
+    const srcH = level3Sprite.height;
+    const sx = suspect.spriteIndex * srcW;
+    const sy = 0;
+
+    image(level3Sprite, width / 2, height * 0.32, 230, 260, sx, sy, srcW, srcH);
+  } else {
+    fill(210);
+    noStroke();
+    rect(width / 2, height * 0.32, 230, 260, 12);
+  }
 
   fill(255);
+  noStroke();
   textAlign(CENTER, CENTER);
   textSize(min(width, height) * 0.022);
 
   text(
     "Visual read: " + suspect.appearance,
     width / 2 - width * 0.3,
-    height * 0.46,
+    height * 0.5,
     width * 0.6,
     60,
   );
@@ -183,7 +255,7 @@ function drawLevel3Inspect() {
     text(
       "Magnify: " + magnifyMessage3,
       width / 2 - width * 0.3,
-      height * 0.56,
+      height * 0.6,
       width * 0.6,
       70,
     );
@@ -193,7 +265,7 @@ function drawLevel3Inspect() {
     text(
       "Interview: " + askMessage3,
       width / 2 - width * 0.3,
-      height * 0.68,
+      height * 0.72,
       width * 0.6,
       85,
     );
@@ -293,7 +365,7 @@ function drawBoard3() {
   strokeWeight(2);
 
   const panelW = min(width * 0.78, 760);
-  const panelH = min(height * 0.72, 480);
+  const panelH = min(height * 0.75, 520);
   rect(width / 2, height / 2, panelW, panelH, 16);
 
   fill(0);
@@ -301,23 +373,23 @@ function drawBoard3() {
   textAlign(CENTER, CENTER);
 
   textSize(min(width, height) * 0.035);
-  text("Evidence Board", width / 2, height / 2 - panelH * 0.38);
+  text("Evidence Board", width / 2, height / 2 - panelH * 0.4);
 
-  textSize(min(width, height) * 0.021);
-  textLeading(26);
+  textSize(min(width, height) * 0.02);
+  textLeading(24);
 
-  const startY = height / 2 - panelH * 0.22;
+  const startY = height / 2 - panelH * 0.24;
 
   for (let i = 0; i < suspects3.length; i++) {
     const line = questioned3[i]
       ? `${suspects3[i].name}: ${suspects3[i].boardNote}`
       : `${suspects3[i].name}: interview not recorded yet.`;
 
-    text(line, width / 2, startY + i * 58);
+    text(line, width / 2, startY + i * 50);
   }
 
   textSize(min(width, height) * 0.018);
-  text("Click anywhere to close.", width / 2, height / 2 + panelH * 0.36);
+  text("Click anywhere to close.", width / 2, height / 2 + panelH * 0.38);
   pop();
 }
 
@@ -376,7 +448,7 @@ function level3MousePressed() {
     const positions = getLineupPositions(suspects3.length);
 
     for (let i = 0; i < suspects3.length; i++) {
-      if (dist(mouseX, mouseY, positions[i].x, positions[i].y) < 39) {
+      if (isMouseOverLevel3Suspect(positions[i].x, positions[i].y, 100, 160)) {
         if (convictMode3) {
           finishCase(
             suspects3[i].isCulprit,
@@ -435,5 +507,5 @@ function resetLevel3() {
   showBoard3 = false;
   forensicsLeft3 = 1;
   forensicMessage3 = "";
-  questioned3 = [false, false, false, false];
+  questioned3 = [false, false, false, false, false];
 }

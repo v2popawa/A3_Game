@@ -198,7 +198,6 @@ function resetAllLevels() {
   resetLevel3();
 }
 
-// Create evenly spaced centered buttons in one row
 function getButtonRow(count, centerY, buttonW, buttonH, gap = 20) {
   const totalWidth = count * buttonW + (count - 1) * gap;
   const startX = width / 2 - totalWidth / 2 + buttonW / 2;
