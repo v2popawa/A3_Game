@@ -3,6 +3,11 @@
 // --------------------------------------------------
 
 let currentScreen = "start";
+let level1Sprite = null;
+
+function preload() {
+  level1Sprite = loadImage("assets/images/level1emotions.png");
+}
 
 function setup() {
   createCanvas(windowWidth, windowHeight);

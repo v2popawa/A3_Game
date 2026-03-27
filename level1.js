@@ -1,27 +1,34 @@
 // --------------------------------------------------
 // Level 1 - Visual clue case
-// Unique mechanic: magnify visual evidence
+// Uses one image sheet with 3 suspect portraits
+// Left = calm, middle = nervous, right = angry
 // --------------------------------------------------
 
 let suspects1 = [
   {
     name: "Mia",
     isCulprit: false,
-    expression: "Keeps steady eye contact and stands completely still.",
+    emotion: "calm",
+    spriteIndex: 0,
+    expression: "Steady posture and relaxed face.",
     magnifiedClue:
       "No dye marks, no torn threads, and no cash fibers on the sleeves.",
   },
   {
     name: "Derek",
     isCulprit: true,
-    expression: "Avoids your gaze and keeps rubbing the right cuff.",
+    emotion: "nervous",
+    spriteIndex: 1,
+    expression: "Tense face and uneasy body language.",
     magnifiedClue:
       "A faint red bank dye stain is caught in the cuff stitching.",
   },
   {
     name: "Luis",
     isCulprit: false,
-    expression: "Looks annoyed, but not especially worried.",
+    emotion: "angry",
+    spriteIndex: 2,
+    expression: "Looks irritated, but not fearful.",
     magnifiedClue:
       "Only outdoor dust on the shoes. Nothing connects him to the bank floor.",
   },
@@ -41,6 +48,67 @@ function getLevel1Buttons() {
     back: { x: width * 0.14, y: height * 0.12, w: 120, h: 46 },
     magnify: { x: width / 2, y: height * 0.82, w: 220, h: 50 },
   };
+}
+
+function formatEmotionLabel(emotion) {
+  return emotion.charAt(0).toUpperCase() + emotion.slice(1);
+}
+
+// Check if mouse is over a suspect portrait
+function isMouseOverLevel1Suspect(x, y, w, h) {
+  return (
+    mouseX > x - w / 2 &&
+    mouseX < x + w / 2 &&
+    mouseY > y - h / 2 &&
+    mouseY < y + h / 2
+  );
+}
+
+// Draw one suspect portrait by cropping 1/3 of the image sheet
+function drawLevel1Portrait(x, y, suspect, drawW, drawH) {
+  const hovered = isMouseOverLevel1Suspect(x, y, drawW, drawH);
+
+  push();
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  // border
+  noFill();
+  strokeWeight(4);
+
+  if (convictMode1) {
+    stroke(255, 110, 110);
+  } else if (hovered) {
+    stroke(120, 210, 255);
+  } else {
+    stroke(255);
+  }
+
+  rect(x, y, drawW + 12, drawH + 12, 14);
+
+  // draw cropped part of the image sheet
+  if (level1Sprite && level1Sprite.width > 0) {
+    const srcW = level1Sprite.width / 3;
+    const srcH = level1Sprite.height;
+    const sx = suspect.spriteIndex * srcW;
+    const sy = 0;
+
+    image(level1Sprite, x, y, drawW, drawH, sx, sy, srcW, srcH);
+  } else {
+    // fallback
+    fill(160);
+    noStroke();
+    rect(x, y, drawW, drawH, 12);
+  }
+
+  // name
+  fill(255);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(max(14, drawW * 0.12));
+  text(suspect.name, x, y + drawH * 0.62);
+
+  pop();
 }
 
 function drawLevel1() {
@@ -63,10 +131,10 @@ function drawLevel1Intro() {
   drawCenteredPanel(
     "Level 1: Bank Robbery",
     "This case is all about observation.\n\n" +
-      "Inspect each suspect closely.\n" +
-      "Use Magnify to catch tiny visual details.\n" +
-      "There is no questioning in this level.\n\n" +
-      "Convict the robber when the physical clue gives them away.",
+      "The three suspects show different emotions.\n" +
+      "Inspect them closely.\n" +
+      "Use Magnify to catch tiny visual details.\n\n" +
+      "Convict the robber when the clue gives them away.",
     "Begin",
     buttons.begin,
   );
@@ -80,18 +148,11 @@ function drawLevel1Lineup() {
     "Level 1: Bank Robbery",
     convictMode1
       ? "Convict mode: click the robber."
-      : "Visual case: inspect suspects and use Magnify.",
+      : "Inspect the suspect portraits and study their expressions.",
   );
 
   for (let i = 0; i < suspects1.length; i++) {
-    const fillColor = convictMode1 ? [170, 80, 80] : [170, 170, 170];
-    drawSuspectToken(
-      positions[i].x,
-      positions[i].y,
-      86,
-      suspects1[i].name,
-      fillColor,
-    );
+    drawLevel1Portrait(positions[i].x, positions[i].y, suspects1[i], 150, 210);
   }
 
   drawButton(buttons.convict, convictMode1 ? "Cancel" : "Convict");
@@ -103,35 +164,63 @@ function drawLevel1Inspect() {
 
   drawCaseHeader(
     "Inspecting " + suspect.name,
-    "Look for a visual tell, then magnify the detail.",
+    "Use the portrait and the magnified clue together.",
   );
 
   push();
-  fill(210);
-  noStroke();
-  ellipse(width / 2, height * 0.38, 190);
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  // large frame
+  noFill();
+  stroke(255);
+  strokeWeight(4);
+  rect(width / 2, height * 0.34, 250, 280, 16);
+
+  // large cropped image
+  if (level1Sprite && level1Sprite.width > 0) {
+    const srcW = level1Sprite.width / 3;
+    const srcH = level1Sprite.height;
+    const sx = suspect.spriteIndex * srcW;
+    const sy = 0;
+
+    image(level1Sprite, width / 2, height * 0.34, 230, 260, sx, sy, srcW, srcH);
+  } else {
+    fill(210);
+    noStroke();
+    rect(width / 2, height * 0.34, 230, 260, 12);
+  }
 
   fill(255);
+  noStroke();
   textAlign(CENTER, CENTER);
-  textSize(min(width, height) * 0.025);
+
+  textSize(min(width, height) * 0.024);
+  text(
+    "Observed emotion: " + formatEmotionLabel(suspect.emotion),
+    width / 2,
+    height * 0.6,
+  );
+
+  textSize(min(width, height) * 0.022);
   text(
     suspect.expression,
-    width / 2 - width * 0.24,
-    height * 0.55,
-    width * 0.48,
-    70,
+    width / 2 - width * 0.25,
+    height * 0.66,
+    width * 0.5,
+    50,
   );
 
   if (magnifyMessage1) {
-    textSize(min(width, height) * 0.022);
     text(
       "Magnify: " + magnifyMessage1,
       width / 2 - width * 0.3,
-      height * 0.64,
+      height * 0.74,
       width * 0.6,
       90,
     );
   }
+
   pop();
 
   drawButton(buttons.back, "Back");
@@ -160,11 +249,11 @@ function level1MousePressed() {
     const positions = getLineupPositions(suspects1.length);
 
     for (let i = 0; i < suspects1.length; i++) {
-      if (dist(mouseX, mouseY, positions[i].x, positions[i].y) < 43) {
+      if (isMouseOverLevel1Suspect(positions[i].x, positions[i].y, 150, 210)) {
         if (convictMode1) {
           finishCase(
             suspects1[i].isCulprit,
-            "Correct! The bank dye gives the robber away.",
+            "Correct! The nervous suspect had the bank dye clue.",
             "Wrong suspect! The real robber slips away.",
             "level2",
             (msg) => {
