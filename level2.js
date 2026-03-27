@@ -1,176 +1,282 @@
+// --------------------------------------------------
+// Level 2 - Interview case
+// Unique mechanic: record statements and compare them
+// --------------------------------------------------
+
 let suspects2 = [
-  { x: 120, y: 300, lying: true },
-  { x: 280, y: 300, lying: false },
-  { x: 440, y: 300, lying: true },
-  { x: 600, y: 300, lying: true },
+  {
+    name: "Taylor",
+    isCulprit: false,
+    answer: "I was at the florist at 8:10. I still have the printed receipt.",
+    boardNote: "Receipt timestamp matches 8:10 PM.",
+    demeanor:
+      "Answers quickly and includes small details without being prompted.",
+  },
+  {
+    name: "Jordan",
+    isCulprit: true,
+    answer: "I stayed outside the gallery the whole time.",
+    boardNote:
+      "Parking camera shows Jordan re-entering the gallery at 8:12 PM.",
+    demeanor: "Repeats the same sentence too carefully, like it was rehearsed.",
+  },
+  {
+    name: "Avery",
+    isCulprit: false,
+    answer: "I was packing the gift table when security shouted.",
+    boardNote: "A staff member confirms Avery was beside the exit display.",
+    demeanor: "Sounds irritated, but the story stays consistent.",
+  },
+  {
+    name: "Morgan",
+    isCulprit: false,
+    answer: "I stepped outside for a phone call before the lights flickered.",
+    boardNote: "Phone log shows a three-minute call beginning at 8:07 PM.",
+    demeanor: "Does not like being questioned, but the timeline lines up.",
+  },
 ];
 
 let level2Stage = "intro";
 let level2Mode = "lineup";
-
 let selected2 = null;
 let message2 = "";
 let askMessage2 = "";
-
-let revealsLeft2 = 3;
-let revealedIndex2 = null;
-
 let convictMode2 = false;
+let showBoard2 = false;
+let questioned2 = [false, false, false, false];
+
+function getLevel2Buttons() {
+  return {
+    begin: { x: width / 2, y: height * 0.74, w: 220, h: 52 },
+    board: { x: width * 0.42, y: height * 0.84, w: 180, h: 50 },
+    convict: { x: width * 0.62, y: height * 0.84, w: 180, h: 50 },
+    back: { x: width * 0.14, y: height * 0.12, w: 120, h: 46 },
+    ask: { x: width / 2, y: height * 0.82, w: 240, h: 50 },
+  };
+}
 
 function drawLevel2() {
-  background(60);
+  background(58, 72, 88);
 
-  if (level2Stage === "intro") drawLevel2Intro();
-  else if (level2Mode === "lineup") drawLevel2Lineup();
-  else drawLevel2Inspect();
+  if (level2Stage === "intro") {
+    drawLevel2Intro();
+  } else if (level2Mode === "lineup") {
+    drawLevel2Lineup();
+  } else {
+    drawLevel2Inspect();
+  }
 
-  fill(255);
-  text(message2, 250, 550);
+  if (showBoard2) {
+    drawLevel2Board();
+  }
+
+  drawFooterMessage(message2);
 }
 
 function drawLevel2Intro() {
-  fill(255);
-  textSize(20);
-  text("Case 2: Jewelry Theft", 250, 120);
+  const buttons = getLevel2Buttons();
 
-  textSize(16);
-  text("A necklace was stolen.\nFour suspects are being questioned.", 240, 250);
-
-  fill(100);
-  rect(300, 400, 200, 50);
-  fill(255);
-  text("Begin", 360, 430);
+  drawCenteredPanel(
+    "Level 2: Jewelry Theft",
+    "This case is about statements.\n\n" +
+      "Question suspects one by one.\n" +
+      "Open the board to compare what you have recorded.\n" +
+      "One story breaks against the timeline.\n\n" +
+      "Use the contradictions to convict the thief.",
+    "Begin",
+    buttons.begin,
+  );
 }
 
 function drawLevel2Lineup() {
-  fill(255);
-  text(
-    convictMode2 ? "Click a suspect to CONVICT" : "Click a suspect to inspect",
-    230,
-    100,
+  const buttons = getLevel2Buttons();
+  const positions = getLineupPositions(suspects2.length);
+  const recordedCount = questioned2.filter(Boolean).length;
+
+  drawCaseHeader(
+    "Level 2: Jewelry Theft",
+    convictMode2
+      ? "Convict mode: click the thief."
+      : "Question suspects and compare the evidence board.",
   );
 
-  for (let i = 0; i < suspects2.length; i++) {
-    if (revealedIndex2 === i) fill(0, 255, 0);
-    else if (convictMode2) fill(255, 100, 100);
-    else fill(180);
+  push();
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(min(width, height) * 0.022);
+  text(
+    `Statements recorded: ${recordedCount}/${suspects2.length}`,
+    width / 2,
+    height * 0.22,
+  );
+  pop();
 
-    ellipse(suspects2[i].x, suspects2[i].y, 70);
+  for (let i = 0; i < suspects2.length; i++) {
+    let fillColor = [170, 170, 170];
+
+    if (questioned2[i]) fillColor = [90, 150, 210];
+    if (convictMode2) fillColor = [170, 80, 80];
+
+    drawSuspectToken(
+      positions[i].x,
+      positions[i].y,
+      78,
+      suspects2[i].name,
+      fillColor,
+    );
   }
 
-  // Buttons
-  fill(100);
-  rect(300, 450, 120, 40); // Reveal
-  rect(450, 450, 120, 40); // Convict
-
-  fill(255);
-  text("Reveal", 320, 475);
-  text("Convict", 465, 475);
-
-  text("Reveals left: " + revealsLeft2, 50, 100);
+  drawButton(buttons.board, "Board");
+  drawButton(buttons.convict, convictMode2 ? "Cancel" : "Convict");
 }
 
 function drawLevel2Inspect() {
-  let s = suspects2[selected2];
+  const buttons = getLevel2Buttons();
+  const suspect = suspects2[selected2];
 
-  fill(200);
-  ellipse(width / 2, 250, 200);
+  drawCaseHeader(
+    "Interviewing " + suspect.name,
+    "Record the statement and compare it against the board.",
+  );
+
+  push();
+  fill(210);
+  noStroke();
+  ellipse(width / 2, height * 0.35, 180);
 
   fill(255);
-  text("Inspecting suspect", 280, 100);
+  textAlign(CENTER, CENTER);
 
-  if (s.lying) {
-    text("They seem nervous.", 300, 350);
-  } else {
-    text("They seem calm.", 310, 350);
+  textSize(min(width, height) * 0.022);
+  text(
+    suspect.demeanor,
+    width / 2 - width * 0.28,
+    height * 0.52,
+    width * 0.56,
+    70,
+  );
+
+  if (askMessage2) {
+    textSize(min(width, height) * 0.022);
+    text(
+      "Statement: " + askMessage2,
+      width / 2 - width * 0.3,
+      height * 0.63,
+      width * 0.6,
+      95,
+    );
+  }
+  pop();
+
+  drawButton(buttons.back, "Back");
+  drawButton(
+    buttons.ask,
+    questioned2[selected2] ? "Recorded" : "Record Statement",
+  );
+}
+
+function drawLevel2Board() {
+  push();
+  fill(0, 180);
+  noStroke();
+  rect(0, 0, width, height);
+
+  rectMode(CENTER);
+  fill(245);
+  stroke(255);
+  strokeWeight(2);
+
+  const panelW = min(width * 0.78, 760);
+  const panelH = min(height * 0.72, 480);
+  rect(width / 2, height / 2, panelW, panelH, 16);
+
+  fill(0);
+  noStroke();
+  textAlign(CENTER, CENTER);
+
+  textSize(min(width, height) * 0.035);
+  text("Evidence Board", width / 2, height / 2 - panelH * 0.38);
+
+  textSize(min(width, height) * 0.021);
+  textLeading(26);
+
+  let startY = height / 2 - panelH * 0.22;
+
+  for (let i = 0; i < suspects2.length; i++) {
+    const line = questioned2[i]
+      ? `${suspects2[i].name}: ${suspects2[i].boardNote}`
+      : `${suspects2[i].name}: statement not recorded yet.`;
+
+    text(line, width / 2, startY + i * 58);
   }
 
-  text(askMessage2, 250, 400);
-
-  // Buttons
-  fill(100);
-  rect(50, 50, 100, 40); // Back
-  rect(300, 450, 200, 40); // Ask
-
-  fill(255);
-  text("Back", 75, 75);
-  text("Ask Question", 320, 475);
+  textSize(min(width, height) * 0.018);
+  text("Click anywhere to close.", width / 2, height / 2 + panelH * 0.36);
+  pop();
 }
 
 function level2MousePressed() {
+  if (transitionPending) return;
+
+  if (showBoard2) {
+    showBoard2 = false;
+    return;
+  }
+
+  const buttons = getLevel2Buttons();
+
   if (level2Stage === "intro") {
-    if (mouseX > 300 && mouseX < 500 && mouseY > 400 && mouseY < 450) {
-      level2Stage = "lineup";
+    if (isOverButton(buttons.begin)) {
+      level2Stage = "play";
     }
     return;
   }
 
   if (level2Mode === "lineup") {
-    // CONVICT MODE
-    if (convictMode2) {
-      for (let i = 0; i < suspects2.length; i++) {
-        if (dist(mouseX, mouseY, suspects2[i].x, suspects2[i].y) < 35) {
-          if (!suspects2[i].lying) {
-            message2 = "Correct!";
-            setTimeout(() => (currentScreen = "level3"), 1000);
-          } else {
-            message2 = "Wrong suspect!";
-            setTimeout(() => {
-              resetLevel1();
-              resetLevel2();
-              resetLevel3();
-              currentScreen = "start";
-            }, 1000);
-          }
-        }
-      }
+    if (isOverButton(buttons.board)) {
+      showBoard2 = true;
       return;
     }
 
-    // CLICK SUSPECT → INSPECT
+    if (isOverButton(buttons.convict)) {
+      convictMode2 = !convictMode2;
+      message2 = convictMode2 ? "Select the thief." : "";
+      return;
+    }
+
+    const positions = getLineupPositions(suspects2.length);
+
     for (let i = 0; i < suspects2.length; i++) {
-      if (dist(mouseX, mouseY, suspects2[i].x, suspects2[i].y) < 35) {
-        selected2 = i;
-        level2Mode = "inspect";
-        askMessage2 = "";
+      if (dist(mouseX, mouseY, positions[i].x, positions[i].y) < 39) {
+        if (convictMode2) {
+          finishCase(
+            suspects2[i].isCulprit,
+            "Correct! Jordan's story breaks against the evidence.",
+            "Wrong suspect! The necklace is never recovered.",
+            "level3",
+            (msg) => {
+              message2 = msg;
+            },
+          );
+        } else {
+          selected2 = i;
+          level2Mode = "inspect";
+          askMessage2 = questioned2[i] ? suspects2[i].answer : "";
+          message2 = "";
+        }
         return;
       }
-    }
-
-    // REVEAL
-    if (mouseX > 300 && mouseX < 420 && mouseY > 450 && mouseY < 490) {
-      if (revealsLeft2 <= 0) {
-        message2 = "No reveals left.";
-        return;
-      }
-
-      revealsLeft2--;
-
-      for (let i = 0; i < suspects2.length; i++) {
-        if (!suspects2[i].lying) revealedIndex2 = i;
-      }
-
-      message2 = "Truth revealed.";
-    }
-
-    // ENTER CONVICT MODE
-    if (mouseX > 450 && mouseX < 570 && mouseY > 450 && mouseY < 490) {
-      convictMode2 = true;
-      message2 = "Select a suspect to convict.";
     }
   } else {
-    // BACK
-    if (mouseX > 50 && mouseX < 150 && mouseY > 50 && mouseY < 90) {
+    if (isOverButton(buttons.back)) {
       level2Mode = "lineup";
+      return;
     }
 
-    // ASK
-    if (mouseX > 300 && mouseX < 500 && mouseY > 450 && mouseY < 490) {
-      if (suspects2[selected2].lying) {
-        askMessage2 = "They hesitate and avoid eye contact...";
-      } else {
-        askMessage2 = "They answer clearly and confidently.";
-      }
+    if (isOverButton(buttons.ask)) {
+      questioned2[selected2] = true;
+      askMessage2 = suspects2[selected2].answer;
+      message2 = "Statement recorded to the board.";
     }
   }
 }
@@ -181,7 +287,7 @@ function resetLevel2() {
   selected2 = null;
   message2 = "";
   askMessage2 = "";
-  revealsLeft2 = 3;
-  revealedIndex2 = null;
   convictMode2 = false;
+  showBoard2 = false;
+  questioned2 = [false, false, false, false];
 }

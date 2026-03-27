@@ -1,7 +1,17 @@
+// --------------------------------------------------
+// Main app loop
+// --------------------------------------------------
+
 let currentScreen = "start";
 
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(windowWidth, windowHeight);
+  textFont("Arial");
+  textAlign(CENTER, CENTER);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
@@ -16,6 +26,8 @@ function draw() {
 }
 
 function mousePressed() {
+  if (transitionPending) return;
+
   if (currentScreen === "start") startMousePressed();
   else if (currentScreen === "instructions") instructionsMousePressed();
   else if (currentScreen === "level1") level1MousePressed();

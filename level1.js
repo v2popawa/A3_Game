@@ -1,126 +1,194 @@
+// --------------------------------------------------
+// Level 1 - Visual clue case
+// Unique mechanic: magnify visual evidence
+// --------------------------------------------------
+
 let suspects1 = [
-  { x: 150, y: 300, lying: false },
-  { x: 350, y: 300, lying: true },
-  { x: 550, y: 300, lying: true },
+  {
+    name: "Mia",
+    isCulprit: false,
+    expression: "Keeps steady eye contact and stands completely still.",
+    magnifiedClue:
+      "No dye marks, no torn threads, and no cash fibers on the sleeves.",
+  },
+  {
+    name: "Derek",
+    isCulprit: true,
+    expression: "Avoids your gaze and keeps rubbing the right cuff.",
+    magnifiedClue:
+      "A faint red bank dye stain is caught in the cuff stitching.",
+  },
+  {
+    name: "Luis",
+    isCulprit: false,
+    expression: "Looks annoyed, but not especially worried.",
+    magnifiedClue:
+      "Only outdoor dust on the shoes. Nothing connects him to the bank floor.",
+  },
 ];
 
 let level1Stage = "intro";
 let level1Mode = "lineup";
-
 let selected1 = null;
 let message1 = "";
-
+let magnifyMessage1 = "";
 let convictMode1 = false;
 
+function getLevel1Buttons() {
+  return {
+    begin: { x: width / 2, y: height * 0.74, w: 220, h: 52 },
+    convict: { x: width / 2, y: height * 0.84, w: 220, h: 50 },
+    back: { x: width * 0.14, y: height * 0.12, w: 120, h: 46 },
+    magnify: { x: width / 2, y: height * 0.82, w: 220, h: 50 },
+  };
+}
+
 function drawLevel1() {
-  background(80);
+  background(70, 78, 96);
 
-  if (level1Stage === "intro") drawLevel1Intro();
-  else if (level1Mode === "lineup") drawLevel1Lineup();
-  else drawLevel1Inspect();
+  if (level1Stage === "intro") {
+    drawLevel1Intro();
+  } else if (level1Mode === "lineup") {
+    drawLevel1Lineup();
+  } else {
+    drawLevel1Inspect();
+  }
 
-  fill(255);
-  text(message1, 250, 550);
+  drawFooterMessage(message1);
 }
 
 function drawLevel1Intro() {
-  fill(255);
-  text("Case 1: Bank Robbery", 260, 120);
+  const buttons = getLevel1Buttons();
 
-  rect(300, 400, 200, 50);
-  text("Begin", 360, 430);
+  drawCenteredPanel(
+    "Level 1: Bank Robbery",
+    "This case is all about observation.\n\n" +
+      "Inspect each suspect closely.\n" +
+      "Use Magnify to catch tiny visual details.\n" +
+      "There is no questioning in this level.\n\n" +
+      "Convict the robber when the physical clue gives them away.",
+    "Begin",
+    buttons.begin,
+  );
 }
 
 function drawLevel1Lineup() {
+  const buttons = getLevel1Buttons();
+  const positions = getLineupPositions(suspects1.length);
+
+  drawCaseHeader(
+    "Level 1: Bank Robbery",
+    convictMode1
+      ? "Convict mode: click the robber."
+      : "Visual case: inspect suspects and use Magnify.",
+  );
+
   for (let i = 0; i < suspects1.length; i++) {
-    if (convictMode1) fill(255, 100, 100);
-    else fill(180);
-
-    ellipse(suspects1[i].x, suspects1[i].y, 80);
+    const fillColor = convictMode1 ? [170, 80, 80] : [170, 170, 170];
+    drawSuspectToken(
+      positions[i].x,
+      positions[i].y,
+      86,
+      suspects1[i].name,
+      fillColor,
+    );
   }
 
-  fill(255);
-
-  if (convictMode1) {
-    text("Click a suspect to CONVICT", 250, 100);
-  } else {
-    text("Click a suspect to inspect", 250, 100);
-  }
-
-  // Convict button
-  fill(100);
-  rect(350, 450, 120, 40);
-  fill(255);
-  text("Convict", 365, 475);
+  drawButton(buttons.convict, convictMode1 ? "Cancel" : "Convict");
 }
 
 function drawLevel1Inspect() {
-  let s = suspects1[selected1];
+  const buttons = getLevel1Buttons();
+  const suspect = suspects1[selected1];
 
-  fill(200);
-  ellipse(width / 2, 250, 200);
+  drawCaseHeader(
+    "Inspecting " + suspect.name,
+    "Look for a visual tell, then magnify the detail.",
+  );
+
+  push();
+  fill(210);
+  noStroke();
+  ellipse(width / 2, height * 0.38, 190);
 
   fill(255);
-  text("Inspecting suspect", 280, 100);
+  textAlign(CENTER, CENTER);
+  textSize(min(width, height) * 0.025);
+  text(
+    suspect.expression,
+    width / 2 - width * 0.24,
+    height * 0.55,
+    width * 0.48,
+    70,
+  );
 
-  if (s.lying) {
-    text("They look nervous.", 300, 400);
-  } else {
-    text("They look calm.", 310, 400);
+  if (magnifyMessage1) {
+    textSize(min(width, height) * 0.022);
+    text(
+      "Magnify: " + magnifyMessage1,
+      width / 2 - width * 0.3,
+      height * 0.64,
+      width * 0.6,
+      90,
+    );
   }
+  pop();
 
-  fill(100);
-  rect(50, 50, 100, 40);
-  fill(255);
-  text("Back", 75, 75);
+  drawButton(buttons.back, "Back");
+  drawButton(buttons.magnify, "Magnify");
 }
 
 function level1MousePressed() {
+  if (transitionPending) return;
+
+  const buttons = getLevel1Buttons();
+
   if (level1Stage === "intro") {
-    if (mouseX > 300 && mouseX < 500 && mouseY > 400 && mouseY < 450)
-      level1Stage = "lineup";
+    if (isOverButton(buttons.begin)) {
+      level1Stage = "play";
+    }
     return;
   }
 
   if (level1Mode === "lineup") {
-    // If in convict mode → click suspect to decide
-    if (convictMode1) {
-      for (let i = 0; i < suspects1.length; i++) {
-        if (dist(mouseX, mouseY, suspects1[i].x, suspects1[i].y) < 40) {
-          if (!suspects1[i].lying) {
-            message1 = "Correct!";
-            setTimeout(() => (currentScreen = "level2"), 1000);
-          } else {
-            message1 = "Wrong suspect!";
-            setTimeout(() => {
-              resetLevel1();
-              resetLevel2();
-              resetLevel3();
-              currentScreen = "start";
-            }, 1000);
-          }
-        }
-      }
+    if (isOverButton(buttons.convict)) {
+      convictMode1 = !convictMode1;
+      message1 = convictMode1 ? "Select the robber." : "";
       return;
     }
 
-    // Normal click → inspect
+    const positions = getLineupPositions(suspects1.length);
+
     for (let i = 0; i < suspects1.length; i++) {
-      if (dist(mouseX, mouseY, suspects1[i].x, suspects1[i].y) < 40) {
-        selected1 = i;
-        level1Mode = "inspect";
+      if (dist(mouseX, mouseY, positions[i].x, positions[i].y) < 43) {
+        if (convictMode1) {
+          finishCase(
+            suspects1[i].isCulprit,
+            "Correct! The bank dye gives the robber away.",
+            "Wrong suspect! The real robber slips away.",
+            "level2",
+            (msg) => {
+              message1 = msg;
+            },
+          );
+        } else {
+          selected1 = i;
+          level1Mode = "inspect";
+          magnifyMessage1 = "";
+          message1 = "";
+        }
         return;
       }
     }
-
-    // Convict button
-    if (mouseX > 350 && mouseX < 470 && mouseY > 450 && mouseY < 490) {
-      convictMode1 = true;
-      message1 = "Select a suspect to convict.";
-    }
   } else {
-    if (mouseX > 50 && mouseX < 150 && mouseY > 50 && mouseY < 90) {
+    if (isOverButton(buttons.back)) {
       level1Mode = "lineup";
+      magnifyMessage1 = "";
+      return;
+    }
+
+    if (isOverButton(buttons.magnify)) {
+      magnifyMessage1 = suspects1[selected1].magnifiedClue;
     }
   }
 }
@@ -130,5 +198,6 @@ function resetLevel1() {
   level1Mode = "lineup";
   selected1 = null;
   message1 = "";
+  magnifyMessage1 = "";
   convictMode1 = false;
 }
