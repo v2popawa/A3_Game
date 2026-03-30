@@ -152,7 +152,7 @@ function drawLevel1Lineup() {
   );
 
   for (let i = 0; i < suspects1.length; i++) {
-    drawLevel1Portrait(positions[i].x, positions[i].y, suspects1[i], 150, 210);
+    drawLevel1Portrait(positions[i].x, positions[i].y, suspects1[i], 200, 500);
   }
 
   drawButton(buttons.convict, convictMode1 ? "Cancel" : "Convict");
