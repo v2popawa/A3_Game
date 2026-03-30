@@ -35,25 +35,51 @@ function drawFail() {
   strokeWeight(2);
   fill(52, 24, 24, 245);
   rect(panelX, panelY, panelW, panelH, 18);
+  pop();
 
+  // centered text block
+  push();
   fill(255);
   textAlign(CENTER, CENTER);
 
-  textSize(min(width, height) * 0.05);
-  text("Case Failed", panelX, panelY - panelH * 0.26);
+  const titleSize = min(width, height) * 0.05;
+  const subSize = min(width, height) * 0.026;
+  const bodySize = min(width, height) * 0.022;
+  const lineGap = 28;
 
-  textSize(min(width, height) * 0.026);
-  text(getFailedLevelLabel(), panelX, panelY - panelH * 0.1);
+  const titleText = "Case Failed";
+  const subText = getFailedLevelLabel();
+  const bodyLines = [
+    failedMessage,
+    "",
+    "Choose Retry to replay this level",
+    "or Home to return to the main menu.",
+  ];
 
-  textSize(min(width, height) * 0.022);
-  text(
-    failedMessage +
-      "\n\nChoose Retry to replay this level\nor Home to return to the main menu.",
-    panelX - panelW * 0.34,
-    panelY - panelH * 0.0,
-    panelW * 0.68,
-    panelH * 0.28,
-  );
+  const titleH = 40;
+  const subH = 26;
+  const bodyH = bodyLines.length * lineGap;
+  const gap1 = 18;
+  const gap2 = 22;
+
+  const totalBlockH = titleH + gap1 + subH + gap2 + bodyH;
+  let startY = panelY - totalBlockH / 2;
+
+  textSize(titleSize);
+  text(titleText, panelX, startY + titleH / 2);
+
+  startY += titleH + gap1;
+
+  textSize(subSize);
+  text(subText, panelX, startY + subH / 2);
+
+  startY += subH + gap2;
+
+  textSize(bodySize);
+  for (let i = 0; i < bodyLines.length; i++) {
+    text(bodyLines[i], panelX, startY + i * lineGap);
+  }
+
   pop();
 
   drawButton(buttons.home, "Home");
