@@ -32,6 +32,7 @@ function draw() {
   else if (currentScreen === "level2") drawLevel2();
   else if (currentScreen === "level3") drawLevel3();
   else if (currentScreen === "win") drawWin();
+  else if (currentScreen === "fail") drawFail();
 }
 
 function mousePressed() {
@@ -43,4 +44,5 @@ function mousePressed() {
   else if (currentScreen === "level2") level2MousePressed();
   else if (currentScreen === "level3") level3MousePressed();
   else if (currentScreen === "win") winMousePressed();
+  else if (currentScreen === "fail") failMousePressed();
 }

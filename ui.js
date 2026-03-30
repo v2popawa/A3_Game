@@ -4,6 +4,14 @@
 // --------------------------------------------------
 
 let transitionPending = false;
+let failedLevel = null;
+let failedMessage = "Wrong suspect!";
+
+function resetLevelByScreen(screenName) {
+  if (screenName === "level1") resetLevel1();
+  else if (screenName === "level2") resetLevel2();
+  else if (screenName === "level3") resetLevel3();
+}
 
 // Draw a standard button
 function drawButton(button, label, fillColor = [80, 110, 170]) {
@@ -45,7 +53,6 @@ function drawCenteredPanel(title, body, buttonLabel, button) {
   rect(0, 0, width, height);
   pop();
 
-  // Panel
   push();
   rectMode(CENTER);
   stroke(255);
@@ -54,7 +61,6 @@ function drawCenteredPanel(title, body, buttonLabel, button) {
   rect(panelX, panelY, panelW, panelH, 18);
   pop();
 
-  // Text
   push();
   fill(255);
   textAlign(CENTER, CENTER);
@@ -68,22 +74,17 @@ function drawCenteredPanel(title, body, buttonLabel, button) {
   let lines = body.split("\n");
   let visibleLines = [];
 
-  // keep blank lines for spacing
   for (let i = 0; i < lines.length; i++) {
     visibleLines.push(lines[i]);
   }
 
   const bodyHeight = visibleLines.length * lineGap;
   const totalBlockHeight = 40 + 24 + bodyHeight;
-  // 40 = title area, 24 = space between title and body
-
   let startY = panelY - totalBlockHeight / 2;
 
-  // Title
   textSize(titleSize);
   text(title, panelX, startY + 20);
 
-  // Body
   textSize(bodySize);
   let bodyStartY = startY + 40 + 24;
 
@@ -96,7 +97,6 @@ function drawCenteredPanel(title, body, buttonLabel, button) {
   drawButton(button, buttonLabel);
 }
 
-// Standard case header
 function drawCaseHeader(title, subtitle = "") {
   push();
   fill(255);
@@ -140,6 +140,25 @@ function getLineupPositions(count) {
   return positions;
 }
 
+// Create evenly spaced centered buttons in one row
+function getButtonRow(count, centerY, buttonW, buttonH, gap = 20) {
+  const totalWidth = count * buttonW + (count - 1) * gap;
+  const startX = width / 2 - totalWidth / 2 + buttonW / 2;
+
+  let buttons = [];
+
+  for (let i = 0; i < count; i++) {
+    buttons.push({
+      x: startX + i * (buttonW + gap),
+      y: centerY,
+      w: buttonW,
+      h: buttonH,
+    });
+  }
+
+  return buttons;
+}
+
 // Draw a simple suspect token
 function drawSuspectToken(x, y, size, name, fillColor) {
   push();
@@ -162,11 +181,11 @@ function drawFooterMessage(message) {
   fill(255);
   textAlign(CENTER, CENTER);
   textSize(min(width, height) * 0.024);
-  text(message, width / 2, height * 0.92);
+  text(message, width / 2, height * 0.94);
   pop();
 }
 
-// Shared outcome handler to avoid repeated copied transition logic
+// Shared outcome handler
 function finishCase(
   isCorrect,
   successMessage,
@@ -177,14 +196,18 @@ function finishCase(
   if (transitionPending) return;
 
   transitionPending = true;
+  const originScreen = currentScreen;
+
   setMessage(isCorrect ? successMessage : failureMessage);
 
   setTimeout(() => {
     if (isCorrect) {
       currentScreen = nextScreen;
     } else {
-      resetAllLevels();
-      currentScreen = "start";
+      failedLevel = originScreen;
+      failedMessage = failureMessage;
+      resetLevelByScreen(originScreen);
+      currentScreen = "fail";
     }
 
     transitionPending = false;
