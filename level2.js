@@ -1,22 +1,15 @@
 // --------------------------------------------------
 // Level 2 - Interview case
-// Keeps Level 1 features:
-// - inspect
-// - magnify
-// - convict
-//
-// Adds Level 2 features:
-// - ask question
-// - evidence board
-//
-// Uses one sprite sheet with 4 suspect portraits
+// Full-screen lineup background
+// Name boxes under each suspect are the clickable targets
+// Highlighting happens on the name boxes
 // --------------------------------------------------
 
 let suspects2 = [
   {
     name: "Taylor",
     isCulprit: false,
-    spriteIndex: 0,
+    cropCenterX: 0.17,
     expression: "Looks alert but composed.",
     magnifiedClue:
       "A clean bracelet clasp and no velvet fibers on the sleeves.",
@@ -26,7 +19,7 @@ let suspects2 = [
   {
     name: "Jordan",
     isCulprit: true,
-    spriteIndex: 1,
+    cropCenterX: 0.4,
     expression: "Keeps glancing away and tightening their jaw.",
     magnifiedClue:
       "A tiny strand of black velvet is caught near the cuff seam.",
@@ -37,7 +30,7 @@ let suspects2 = [
   {
     name: "Avery",
     isCulprit: false,
-    spriteIndex: 2,
+    cropCenterX: 0.63,
     expression: "Looks irritated, not frightened.",
     magnifiedClue:
       "Only catering glitter from the gift table, nothing from the necklace case.",
@@ -47,7 +40,7 @@ let suspects2 = [
   {
     name: "Morgan",
     isCulprit: false,
-    spriteIndex: 3,
+    cropCenterX: 0.86,
     expression: "Tired eyes, steady voice.",
     magnifiedClue:
       "Phone screen smudge and lipstick trace, but no display-case residue.",
@@ -68,76 +61,123 @@ let convictMode2 = false;
 let showBoard2 = false;
 let questioned2 = [false, false, false, false];
 
+// --------------------------------------------------
+// Button layout
+// --------------------------------------------------
+
+function getLevel2NameButtons() {
+  const y = height * 0.91;
+  const w = min(width * 0.16, 165);
+  const h = 48;
+
+  return [
+    { x: width * 0.17, y, w, h },
+    { x: width * 0.4, y, w, h },
+    { x: width * 0.63, y, w, h },
+    { x: width * 0.86, y, w, h },
+  ];
+}
+
 function getLevel2Buttons() {
-  const lineupRow = getButtonRow(2, height * 0.86, 170, 50, 28);
-  const inspectRow = getButtonRow(2, height * 0.86, 170, 50, 28);
+  const lineupRow = getButtonRow(2, height * 0.8, 180, 50, 30);
+  const inspectRow = getButtonRow(3, height * 0.8, 160, 50, 22);
 
   return {
     begin: { x: width / 2, y: height * 0.74, w: 220, h: 52 },
 
+    // lineup mode
     board: lineupRow[0],
     convict: lineupRow[1],
 
-    back: { x: width * 0.12, y: height * 0.12, w: 110, h: 44 },
+    // inspect mode
+    back: { x: width * 0.12, y: height * 0.1, w: 110, h: 44 },
     magnify: inspectRow[0],
     ask: inspectRow[1],
+    boardInspect: inspectRow[2],
   };
 }
 
-function isMouseOverLevel2Suspect(x, y, w, h) {
-  return (
-    mouseX > x - w / 2 &&
-    mouseX < x + w / 2 &&
-    mouseY > y - h / 2 &&
-    mouseY < y + h / 2
-  );
+function getLevel2NameButton(index) {
+  return getLevel2NameButtons()[index];
 }
 
-function drawLevel2Portrait(x, y, suspect, drawW, drawH) {
-  const hovered = isMouseOverLevel2Suspect(x, y, drawW, drawH);
+// --------------------------------------------------
+// Drawing helpers
+// --------------------------------------------------
 
+function drawLevel2Background() {
   push();
-  imageMode(CENTER);
-  rectMode(CENTER);
-
-  noFill();
-  strokeWeight(4);
-
-  if (convictMode2) stroke(255, 110, 110);
-  else if (hovered) stroke(120, 210, 255);
-  else stroke(255);
-
-  rect(x, y, drawW + 12, drawH + 12, 14);
+  imageMode(CORNER);
 
   if (level2Sprite && level2Sprite.width > 0) {
-    const srcW = level2Sprite.width / 4;
-    const srcH = level2Sprite.height;
-    const sx = suspect.spriteIndex * srcW;
-    const sy = 0;
-
-    image(level2Sprite, x, y, drawW, drawH, sx, sy, srcW, srcH);
+    image(level2Sprite, 0, 0, width, height);
   } else {
-    fill(160);
-    noStroke();
-    rect(x, y, drawW, drawH, 12);
+    background(58, 72, 88);
   }
 
-  fill(255);
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textSize(max(14, drawW * 0.11));
-  text(suspect.name, x, y + drawH * 0.62);
   pop();
 }
+
+function drawLevel2ZoomedSuspect(suspect) {
+  push();
+  imageMode(CORNER);
+
+  if (level2Sprite && level2Sprite.width > 0) {
+    const srcW = level2Sprite.width * 0.28;
+    const srcH = level2Sprite.height;
+    const centerX = level2Sprite.width * suspect.cropCenterX;
+    const sx = constrain(centerX - srcW / 2, 0, level2Sprite.width - srcW);
+
+    image(level2Sprite, 0, 0, width, height, sx, 0, srcW, srcH);
+  } else {
+    background(58, 72, 88);
+  }
+
+  pop();
+}
+
+function drawLevel2Overlay(alpha = 85) {
+  push();
+  fill(0, alpha);
+  noStroke();
+  rect(0, 0, width, height);
+  pop();
+}
+
+function drawLevel2NameButton(button, label, index) {
+  const hovered = isOverButton(button);
+  const isSelected = selected2 === index && !convictMode2;
+  const isQuestioned = questioned2[index] && !convictMode2;
+  const dangerMode = convictMode2;
+
+  let fillColor = [80, 110, 170];
+
+  if (dangerMode) fillColor = [160, 70, 70];
+  else if (isSelected) fillColor = [70, 145, 210];
+  else if (isQuestioned) fillColor = [70, 130, 95];
+  else if (hovered) fillColor = [100, 135, 195];
+
+  drawButton(button, label, fillColor);
+}
+
+// --------------------------------------------------
+// Main draw
+// --------------------------------------------------
 
 function drawLevel2() {
   background(58, 72, 88);
 
-  if (level2Stage === "intro") drawLevel2Intro();
-  else if (level2Mode === "lineup") drawLevel2Lineup();
-  else drawLevel2Inspect();
+  if (level2Stage === "intro") {
+    drawLevel2Intro();
+  } else if (level2Mode === "lineup") {
+    drawLevel2Lineup();
+  } else {
+    drawLevel2Inspect();
+  }
 
-  if (showBoard2) drawLevel2Board();
+  if (showBoard2) {
+    drawLevel2Board();
+  }
 
   drawFooterMessage(message2);
 }
@@ -150,7 +190,7 @@ function drawLevel2Intro() {
     "Level 2 keeps the tools from Level 1.\n\n" +
       "You can still inspect and magnify suspects.\n" +
       "Now you can also question them and compare what you learn on the evidence board.\n\n" +
-      "Use all of those tools before you convict.",
+      "Click a suspect's name to inspect them.",
     "Begin",
     buttons.begin,
   );
@@ -158,14 +198,15 @@ function drawLevel2Intro() {
 
 function drawLevel2Lineup() {
   const buttons = getLevel2Buttons();
-  const positions = getLineupPositions(suspects2.length);
-  const recordedCount = questioned2.filter(Boolean).length;
+
+  drawLevel2Background();
+  drawLevel2Overlay(70);
 
   drawCaseHeader(
     "Level 2: Jewelry Theft",
     convictMode2
-      ? "Convict mode: click the thief."
-      : "Inspect, magnify, question, then compare the board.",
+      ? "Convict mode: click a suspect name to make your final choice."
+      : "Click a suspect name to inspect. Use Board to compare statements.",
   );
 
   push();
@@ -173,14 +214,15 @@ function drawLevel2Lineup() {
   textAlign(CENTER, CENTER);
   textSize(min(width, height) * 0.022);
   text(
-    `Statements recorded: ${recordedCount}/${suspects2.length}`,
+    `Statements recorded: ${questioned2.filter(Boolean).length}/${suspects2.length}`,
     width / 2,
-    height * 0.22,
+    height * 0.19,
   );
   pop();
 
+  const nameButtons = getLevel2NameButtons();
   for (let i = 0; i < suspects2.length; i++) {
-    drawLevel2Portrait(positions[i].x, positions[i].y, suspects2[i], 125, 185);
+    drawLevel2NameButton(nameButtons[i], suspects2[i].name, i);
   }
 
   drawButton(buttons.board, "Board");
@@ -191,33 +233,15 @@ function drawLevel2Inspect() {
   const buttons = getLevel2Buttons();
   const suspect = suspects2[selected2];
 
+  drawLevel2ZoomedSuspect(suspect);
+  drawLevel2Overlay(95);
+
   drawCaseHeader(
     "Inspecting " + suspect.name,
-    "Level 1 tools stay here: inspect and magnify. New tool: question.",
+    "Use Magnify, Ask, and Board. You can also switch suspects by clicking another name.",
   );
 
   push();
-  imageMode(CENTER);
-  rectMode(CENTER);
-
-  noFill();
-  stroke(255);
-  strokeWeight(4);
-  rect(width / 2, height * 0.34, 250, 280, 16);
-
-  if (level2Sprite && level2Sprite.width > 0) {
-    const srcW = level2Sprite.width / 4;
-    const srcH = level2Sprite.height;
-    const sx = suspect.spriteIndex * srcW;
-    const sy = 0;
-
-    image(level2Sprite, width / 2, height * 0.34, 230, 260, sx, sy, srcW, srcH);
-  } else {
-    fill(210);
-    noStroke();
-    rect(width / 2, height * 0.34, 230, 260, 12);
-  }
-
   fill(255);
   noStroke();
   textAlign(CENTER, CENTER);
@@ -226,7 +250,7 @@ function drawLevel2Inspect() {
   text(
     "Visual read: " + suspect.expression,
     width / 2 - width * 0.3,
-    height * 0.56,
+    height * 0.54,
     width * 0.6,
     60,
   );
@@ -234,9 +258,9 @@ function drawLevel2Inspect() {
   if (magnifyMessage2) {
     text(
       "Magnify: " + magnifyMessage2,
-      width / 2 - width * 0.3,
-      height * 0.66,
-      width * 0.6,
+      width / 2 - width * 0.32,
+      height * 0.65,
+      width * 0.64,
       80,
     );
   }
@@ -244,9 +268,9 @@ function drawLevel2Inspect() {
   if (askMessage2) {
     text(
       "Statement: " + askMessage2,
-      width / 2 - width * 0.3,
-      height * 0.78,
-      width * 0.6,
+      width / 2 - width * 0.32,
+      height * 0.77,
+      width * 0.64,
       90,
     );
   }
@@ -256,11 +280,21 @@ function drawLevel2Inspect() {
   drawButton(buttons.back, "Back");
   drawButton(buttons.magnify, "Magnify");
   drawButton(buttons.ask, questioned2[selected2] ? "Asked" : "Ask");
+  drawButton(buttons.boardInspect, "Board");
+
+  const nameButtons = getLevel2NameButtons();
+  for (let i = 0; i < suspects2.length; i++) {
+    drawLevel2NameButton(nameButtons[i], suspects2[i].name, i);
+  }
 }
+
+// --------------------------------------------------
+// Evidence board
+// --------------------------------------------------
 
 function drawLevel2Board() {
   push();
-  fill(0, 180);
+  fill(0, 190);
   noStroke();
   rect(0, 0, width, height);
 
@@ -298,6 +332,10 @@ function drawLevel2Board() {
   pop();
 }
 
+// --------------------------------------------------
+// Mouse handling
+// --------------------------------------------------
+
 function level2MousePressed() {
   if (transitionPending) return;
 
@@ -323,19 +361,17 @@ function level2MousePressed() {
 
     if (isOverButton(buttons.convict)) {
       convictMode2 = !convictMode2;
-      message2 = convictMode2 ? "Select the thief." : "";
+      message2 = convictMode2 ? "Click a suspect name to convict." : "";
       return;
     }
 
-    const positions = getLineupPositions(suspects2.length);
-
     for (let i = 0; i < suspects2.length; i++) {
-      if (isMouseOverLevel2Suspect(positions[i].x, positions[i].y, 125, 185)) {
+      if (isOverButton(getLevel2NameButton(i))) {
         if (convictMode2) {
           finishCase(
             suspects2[i].isCulprit,
             "Correct! Jordan's story and the velvet fiber give it away.",
-            "Wrong suspect! The necklace is never recovered.",
+            "Wrong suspect!",
             "level3",
             (msg) => {
               message2 = msg;
@@ -366,9 +402,29 @@ function level2MousePressed() {
       questioned2[selected2] = true;
       askMessage2 = suspects2[selected2].answer;
       message2 = "Statement recorded to the board.";
+      return;
+    }
+
+    if (isOverButton(buttons.boardInspect)) {
+      showBoard2 = true;
+      return;
+    }
+
+    for (let i = 0; i < suspects2.length; i++) {
+      if (isOverButton(getLevel2NameButton(i))) {
+        selected2 = i;
+        askMessage2 = questioned2[i] ? suspects2[i].answer : "";
+        magnifyMessage2 = "";
+        message2 = "";
+        return;
+      }
     }
   }
 }
+
+// --------------------------------------------------
+// Reset
+// --------------------------------------------------
 
 function resetLevel2() {
   level2Stage = "intro";
